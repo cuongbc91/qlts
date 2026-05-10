@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Checklist Tài Sản</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f5;color:#1a1a1a;font-size:14px}
+.hdr{background:#fff;padding:12px 16px;border-bottom:1px solid #e5e5e5;position:sticky;top:0;z-index:10}
+.hdr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.hdr-title{font-size:15px;font-weight:600}
+.prog-wrap{background:#f0f0f0;border-radius:4px;height:4px}
+.prog-fill{height:100%;background:#3B6D11;border-radius:4px;transition:width .4s}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:10px 16px;background:#fff;border-bottom:1px solid #e5e5e5}
+.stat{text-align:center}
+.stat-n{font-size:18px;font-weight:600}
+.stat-l{font-size:10px;color:#888;margin-top:2px}
+.s-done{color:#3B6D11}.s-pending{color:#888}.s-missing{color:#E24B4A}.s-error{color:#BA7517}
+.toolbar{background:#fff;padding:8px 16px;border-bottom:1px solid #e5e5e5}
+.search{width:100%;padding:8px 12px;border-radius:8px;border:1px solid #ddd;font-size:14px;background:#f9f9f9}
+.filters{display:flex;gap:6px;padding:8px 16px;overflow-x:auto;background:#fff;border-bottom:1px solid #e5e5e5}
+.filters::-webkit-scrollbar{display:none}
+.chip{font-size:12px;padding:5px 12px;border-radius:20px;border:1px solid #ddd;background:#fff;color:#666;cursor:pointer;white-space:nowrap}
+.chip.active{border-color:#1a1a1a;color:#1a1a1a;font-weight:500}
+.list{padding:8px 16px 100px}
+.room-label{font-size:10px;font-weight:600;color:#888;letter-spacing:.5px;text-transform:uppercase;padding:12px 0 6px}
+.asset-item{display:flex;align-items:center;gap:10px;background:#fff;border-radius:10px;border:1px solid #e5e5e5;padding:10px 12px;margin-bottom:6px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.asset-item:active{background:#f9f9f9}
+.a-left{flex:1;min-width:0}
+.a-code{font-size:11px;color:#888;margin-bottom:2px}
+.a-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.a-note{font-size:11px;color:#aaa;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.d-done{background:#3B6D11}.d-pending{background:#aaa}.d-missing{background:#E24B4A}.d-error{background:#BA7517}
+.s-label{font-size:10px;color:#888}
+.fab{position:fixed;bottom:20px;right:16px;background:#1a1a1a;color:#fff;border:none;border-radius:24px;padding:12px 18px;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 2px 12px rgba(0,0,0,.2)}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:50;align-items:flex-end}
+.overlay.open{display:flex}
+.sheet{background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 40px;width:100%;max-height:80vh;overflow-y:auto}
+.sheet-title{font-size:16px;font-weight:600;margin-bottom:4px}
+.sheet-sub{font-size:12px;color:#888;margin-bottom:18px}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.opt{padding:12px 10px;border-radius:10px;border:1px solid #e5e5e5;background:#fff;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:8px;font-family:inherit;text-align:left}
+.opt.sel{border-width:2px;border-color:#1a1a1a}
+.note-lbl{font-size:12px;color:#888;margin-bottom:6px}
+.note-in{width:100%;padding:10px 12px;border-radius:8px;border:1px solid #ddd;font-size:13px;font-family:inherit;resize:none;margin-bottom:8px}
+.name-in{width:100%;padding:10px 12px;border-radius:8px;border:1px solid #ddd;font-size:13px;font-family:inherit;margin-bottom:10px}
+.lbl{font-size:12px;color:#888;display:block;margin-bottom:4px}
+.save{width:100%;padding:13px;border-radius:10px;border:2px solid #1a1a1a;background:#1a1a1a;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+.user-bar{background:#fff;padding:8px 16px;border-bottom:1px solid #e5e5e5;display:flex;align-items:center;gap:8px}
+.user-in{flex:1;padding:7px 10px;border-radius:8px;border:1px solid #ddd;font-size:13px;font-family:inherit}
+.loading{text-align:center;padding:40px 16px;color:#888;font-size:13px}
+.err-box{text-align:center;padding:24px 16px;color:#E24B4A;font-size:13px;line-height:1.6}
+.refresh-btn{margin-top:12px;padding:8px 16px;border-radius:8px;border:1px solid #ddd;background:#fff;font-size:13px;cursor:pointer;font-family:inherit}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-top">
+    <span class="hdr-title">Checklist Tài Sản</span>
+    <span id="sync-status" style="font-size:11px;color:#888">Đang tải...</span>
+  </div>
+  <div class="prog-wrap"><div class="prog-fill" id="prog" style="width:0%"></div></div>
+</div>
+
+<div class="user-bar">
+  <span style="font-size:12px;color:#888;white-space:nowrap">Người dùng:</span>
+  <input class="user-in" type="text" id="username" placeholder="Nhập tên của bạn..." />
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="stat-n s-done" id="sd">0</div><div class="stat-l">Đã dán</div></div>
+  <div class="stat"><div class="stat-n s-pending" id="sp">0</div><div class="stat-l">Chưa dán</div></div>
+  <div class="stat"><div class="stat-n s-missing" id="sm">0</div><div class="stat-l">Không thấy</div></div>
+  <div class="stat"><div class="stat-n s-error" id="se">0</div><div class="stat-l">Sai lệch</div></div>
+</div>
+
+<div class="toolbar">
+  <input class="search" type="text" id="search" placeholder="Tìm mã hoặc tên tài sản..." oninput="render()">
+</div>
+
+<div class="filters">
+  <button class="chip active" onclick="setFilter('all',this)">Tất cả</button>
+  <button class="chip" onclick="setFilter('pending',this)">Chưa dán</button>
+  <button class="chip" onclick="setFilter('done',this)">Đã dán</button>
+  <button class="chip" onclick="setFilter('missing',this)">Không thấy</button>
+  <button class="chip" onclick="setFilter('error',this)">Sai lệch</button>
+</div>
+
+<div class="list" id="list"><div class="loading">Đang kết nối Google Sheets...</div></div>
+
+<button class="fab" onclick="openAdd()">+ Thêm tài sản</button>
+
+<!-- Modal cập nhật trạng thái -->
+<div class="overlay" id="edit-overlay" onclick="closeEdit(event)">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-title" id="e-name"></div>
+    <div class="sheet-sub" id="e-code"></div>
+    <div class="opts">
+      <button class="opt" data-s="done" onclick="selStatus('done',this)"><span class="dot d-done"></span>Đã dán</button>
+      <button class="opt" data-s="pending" onclick="selStatus('pending',this)"><span class="dot d-pending"></span>Chưa dán</button>
+      <button class="opt" data-s="missing" onclick="selStatus('missing',this)"><span class="dot d-missing"></span>Không tìm thấy</button>
+      <button class="opt" data-s="error" onclick="selStatus('error',this)"><span class="dot d-error"></span>Sai lệch / lỗi</button>
+    </div>
+    <div class="note-lbl">Ghi chú</div>
+    <textarea class="note-in" id="e-note" rows="2" placeholder="Mô tả thêm nếu cần..."></textarea>
+    <button class="save" id="save-btn" onclick="saveEdit()">Lưu</button>
+  </div>
+</div>
+
+<!-- Modal thêm tài sản -->
+<div class="overlay" id="add-overlay" onclick="closeAdd(event)">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-title" style="margin-bottom:16px">Thêm tài sản phát sinh</div>
+    <label class="lbl">Mã tài sản</label>
+    <input class="name-in" type="text" id="new-code" placeholder="VD: TS-3301">
+    <label class="lbl">Tên tài sản</label>
+    <input class="name-in" type="text" id="new-name" placeholder="VD: Màn hình Dell 24 inch">
+    <label class="lbl">Phòng / khu vực</label>
+    <input class="name-in" type="text" id="new-room" placeholder="VD: P.201 - Phòng họp A">
+    <button class="save" onclick="saveAdd()">Thêm vào danh sách</button>
+  </div>
+</div>
+
+<script>
+// =============================================
+// ĐIỀN SCRIPT URL CỦA BẠN VÀO ĐÂY
+// Lấy từ Apps Script > Deploy > Manage deployments
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxZqhyUsafvVKHm3sXpxPE-CW5oRLlKMLKhbcko3Z32iOddjxlNVnguz9Y4OumPT6qd/exec';
+// =============================================
+
+const STATUSES = {done:'Đã dán', pending:'Chưa dán', missing:'Không tìm thấy', error:'Sai lệch'};
+let assets = [];
+let filter = 'all';
+let editId = null;
+let selSt = null;
+
+async function loadData() {
+  document.getElementById('sync-status').textContent = 'Đang đồng bộ...';
+  try {
+    const r = await fetch(SCRIPT_URL + '?action=getAll');
+    const d = await r.json();
+    if (d.ok) {
+      assets = d.data.map(a => ({...a, trangThai: a.trangThai || 'pending'}));
+      updateStats();
+      render();
+      const now = new Date().toLocaleTimeString('vi-VN');
+      document.getElementById('sync-status').textContent = 'Đồng bộ ' + now;
+    } else {
+      showError('Lỗi từ server: ' + (d.msg || 'Không xác định'));
+    }
+  } catch(e) {
+    showError('Không kết nối được.<br>Kiểm tra Script URL và kết nối internet.');
+    document.getElementById('sync-status').textContent = 'Lỗi kết nối';
+  }
+}
+
+function showError(msg) {
+  document.getElementById('list').innerHTML =
+    '<div class="err-box">' + msg +
+    '<br><button class="refresh-btn" onclick="loadData()">Thử lại</button></div>';
+}
+
+function updateStats() {
+  const c = {done:0, pending:0, missing:0, error:0};
+  assets.forEach(a => c[a.trangThai]++);
+  document.getElementById('sd').textContent = c.done;
+  document.getElementById('sp').textContent = c.pending;
+  document.getElementById('sm').textContent = c.missing;
+  document.getElementById('se').textContent = c.error;
+  const pct = assets.length ? Math.round(c.done / assets.length * 100) : 0;
+  document.getElementById('prog').style.width = pct + '%';
+}
+
+function setFilter(f, el) {
+  filter = f;
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  render();
+}
+
+function render() {
+  const q = document.getElementById('search').value.toLowerCase();
+  const filtered = assets.filter(a => {
+    const mf = filter === 'all' || a.trangThai === filter;
+    const ms = !q || (a.maTaiSan||'').toLowerCase().includes(q)
+                  || (a.tenTaiSan||'').toLowerCase().includes(q)
+                  || (a.phong||'').toLowerCase().includes(q);
+    return mf && ms;
+  });
+
+  if (!filtered.length) {
+    document.getElementById('list').innerHTML = '<div class="loading">Không có tài sản nào</div>';
+    return;
+  }
+
+  const rooms = {};
+  filtered.forEach(a => {
+    const r = a.phong || 'Chưa phân phòng';
+    if (!rooms[r]) rooms[r] = [];
+    rooms[r].push(a);
+  });
+
+  let html = '';
+  Object.keys(rooms).sort().forEach(room => {
+    html += '<div class="room-label">' + room + '</div>';
+    rooms[room].forEach(a => {
+      const key = encodeURIComponent(a.id || a.maTaiSan);
+      html += '<div class="asset-item" onclick="openEdit(\'' + (a.id||a.maTaiSan).replace(/'/g,"\\'") + '\')">'
+        + '<div class="a-left">'
+        + '<div class="a-code">' + (a.maTaiSan||'') + '</div>'
+        + '<div class="a-name">' + (a.tenTaiSan||'') + '</div>'
+        + (a.ghiChu ? '<div class="a-note">' + a.ghiChu + '</div>' : '')
+        + '</div>'
+        + '<div style="text-align:right">'
+        + '<div class="dot d-' + (a.trangThai||'pending') + '" style="margin:0 auto 4px"></div>'
+        + '<div class="s-label">' + (STATUSES[a.trangThai] || 'Chưa dán') + '</div>'
+        + '</div></div>';
+    });
+  });
+  document.getElementById('list').innerHTML = html;
+}
+
+function openEdit(id) {
+  editId = id;
+  const a = assets.find(x => (x.id||x.maTaiSan) === id);
+  if (!a) return;
+  document.getElementById('e-name').textContent = a.tenTaiSan || '';
+  document.getElementById('e-code').textContent = (a.maTaiSan||'') + ' · ' + (a.phong||'');
+  document.getElementById('e-note').value = a.ghiChu || '';
+  selSt = a.trangThai || 'pending';
+  document.querySelectorAll('.opt').forEach(b => b.classList.toggle('sel', b.dataset.s === selSt));
+  document.getElementById('edit-overlay').classList.add('open');
+}
+
+function selStatus(s, el) {
+  selSt = s;
+  document.querySelectorAll('.opt').forEach(b => b.classList.toggle('sel', b.dataset.s === s));
+}
+
+async function saveEdit() {
+  const btn = document.getElementById('save-btn');
+  btn.textContent = 'Đang lưu...';
+  btn.disabled = true;
+
+  const user = document.getElementById('username').value.trim() || 'Không rõ';
+  const note = document.getElementById('e-note').value;
+  const now = new Date().toLocaleString('vi-VN');
+
+  const a = assets.find(x => (x.id||x.maTaiSan) === editId);
+  if (a) { a.trangThai = selSt; a.ghiChu = note; a.nguoiCapNhat = user; a.thoiGian = now; }
+
+  updateStats();
+  render();
+  document.getElementById('edit-overlay').classList.remove('open');
+
+  try {
+    const url = SCRIPT_URL
+      + '?action=update'
+      + '&id=' + encodeURIComponent(editId)
+      + '&trangThai=' + encodeURIComponent(selSt)
+      + '&ghiChu=' + encodeURIComponent(note)
+      + '&nguoiCapNhat=' + encodeURIComponent(user)
+      + '&thoiGian=' + encodeURIComponent(now);
+    await fetch(url);
+  } catch(e) {}
+
+  btn.textContent = 'Lưu';
+  btn.disabled = false;
+}
+
+function closeEdit(e) { document.getElementById('edit-overlay').classList.remove('open'); }
+function openAdd() { document.getElementById('add-overlay').classList.add('open'); }
+function closeAdd(e) { document.getElementById('add-overlay').classList.remove('open'); }
+
+async function saveAdd() {
+  const code = document.getElementById('new-code').value.trim();
+  const name = document.getElementById('new-name').value.trim();
+  const room = document.getElementById('new-room').value.trim();
+  if (!code || !name || !room) { alert('Vui lòng điền đủ thông tin'); return; }
+
+  const user = document.getElementById('username').value.trim() || 'Không rõ';
+  assets.push({id:'NEW-'+Date.now(), maTaiSan:code, tenTaiSan:name, phong:room, trangThai:'pending', ghiChu:'Tài sản phát sinh'});
+  updateStats();
+  render();
+  document.getElementById('add-overlay').classList.remove('open');
+  document.getElementById('new-code').value = '';
+  document.getElementById('new-name').value = '';
+  document.getElementById('new-room').value = '';
+
+  try {
+    const url = SCRIPT_URL
+      + '?action=add'
+      + '&maTaiSan=' + encodeURIComponent(code)
+      + '&tenTaiSan=' + encodeURIComponent(name)
+      + '&phong=' + encodeURIComponent(room)
+      + '&nguoiCapNhat=' + encodeURIComponent(user);
+    await fetch(url);
+  } catch(e) {}
+}
+
+loadData();
+setInterval(loadData, 60000);
+</script>
+</body>
+</html>
